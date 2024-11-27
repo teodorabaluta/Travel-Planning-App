@@ -1,0 +1,62 @@
+/* GroupsPage.css */
+
+.group-page {
+    padding: 20px;
+    background-color: #D6AEDD;
+    min-height: 100vh; /* Asigură-te că pagina acoperă întreaga înălțime */
+    font-family: 'Arial', sans-serif;
+  }
+  
+  .group-page h1 {
+    text-align: center;
+    color: #4a4a4a;
+    margin-bottom: 20px;
+  }
+  
+  .group-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+  }
+  
+  .group-card {
+    background-color: #D6AEDD;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 300px;
+    padding: 15px;
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .group-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  .group-card h3 {
+    color: #333;
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+  }
+  
+  .group-card p {
+    color: #666;
+    font-size: 1rem;
+    margin-bottom: 10px;
+  }
+  
+  .group-card p:last-child {
+    font-style: italic;
+    color: #999;
+  }
+  
+  .no-groups-message {
+    color: #999;
+    text-align: center;
+    font-size: 1.2rem;
+    margin-top: 20px;
+  }
+  

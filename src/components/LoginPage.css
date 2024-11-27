@@ -1,0 +1,72 @@
+/* Stiluri pentru LoginPage */
+.login-page {
+    background: linear-gradient(to right, #D6AEDD, #D6AEDD); /* Gradient pastelat pe întreaga pagină */
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    font-family: 'Arial', sans-serif;
+    color: white; /* Text alb */
+  }
+  
+  h1 {
+    font-size: 3rem;
+    text-align: center;
+    margin: 20px;
+    color: white; /* Asigurăm că titlul este alb */
+  }
+  
+  form {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.8); /* Fundal alb transparent */
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+  }
+  
+  label {
+    color: black; /* Culoare neagră pentru textul etichetelor (ex: email, password) */
+    font-size: 1rem;
+    margin-bottom: 5px; /* Distanța dintre etichetă și input */
+  }
+  
+  input {
+    padding: 12px;
+    font-size: 1rem;
+    margin: 10px 0;
+    border-radius: 10px;
+    border: 1px solid #9523aa;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  button {
+    background-color: #9523aa;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.2rem;
+    margin-top: 15px;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: 0.3s;
+    width: 100%; /* Butonul să ocupe întreaga lățime a formularului */
+  }
+  
+  button:hover {
+    background-color: #FFB7B2;
+    color: #9523aa;
+  }
+  
+  p {
+    font-size: 1rem;
+    text-align: center;
+    color: #fff;
+  }
+  

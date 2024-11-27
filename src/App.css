@@ -1,0 +1,37 @@
+/* Stiluri pentru aplicație */
+.app {
+  background: linear-gradient(to right, #D6AEDD, #D6AEDD); /* Gradient pastelat pe întreaga pagină */
+  height: 100vh; /* Întinde pe întreaga înălțime a ecranului */
+  width: 100vw; /* Întinde pe întreaga lățime a ecranului */
+  display: flex;
+  justify-content: center; /* Centrează conținutul pe orizontală */
+  align-items: center; /* Centrează conținutul pe verticală */
+  font-family: 'Arial', sans-serif;
+  color: white; /* Text alb pentru contrast */
+}
+
+h1, h2, p, label {
+  color: rgb(0, 0, 0); /* Asigurăm că textul este alb pe toate paginile */
+}
+
+button {
+  background-color: #9523aa;
+  color: rgb(0, 0, 0);
+  border: none;
+  padding: 15px 30px;
+  font-size: 1.2rem;
+  margin-top: 15px;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: 0.3s;
+  width: 100%; /* Butonul să ocupe întreaga lățime a formularului */
+}
+
+button:hover {
+  background-color: #FFB7B2;
+  color: #9523aa;
+}
+
+input, textarea {
+  color: #333; /* Culoare text pe input - un gri închis pentru contrast */
+}

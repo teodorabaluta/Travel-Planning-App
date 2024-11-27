@@ -1,0 +1,18 @@
+/* Stiluri pentru Footer */
+.footer {
+    background: linear-gradient(to right, #D6AEDD, #D6AEDD); /* Gradient pastelat */
+    color: #333;
+    text-align: center; /* Aliniere la centru */
+    padding: 20px 0; /* Margine interioară pentru spațiu */
+    position: fixed;
+    bottom: 0;
+    width: 100%; /* Întinde footer-ul pe toată lățimea */
+    font-family: 'Arial', sans-serif;
+    font-size: 1rem;
+  }
+  
+  .footer p {
+    margin: 0;
+    color: #9523aa; /* Culoare pentru textul din footer */
+  }
+  

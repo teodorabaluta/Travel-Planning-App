@@ -1,0 +1,52 @@
+/* Stiluri pentru CreateRoutePage */
+.create-route-page {
+    background: linear-gradient(to right, #D6AEDD, #D6AEDD); /* Gradient pastelat */
+    height: 100vh;
+    display: flex;
+    justify-content: center; /* Centrează pe orizontală */
+    align-items: center; /* Centrează pe verticală */
+    flex-direction: column;
+    font-family: 'Arial', sans-serif;
+    color: #333; /* Text întunecat pentru un contrast mai bun */
+  }
+  
+  h2 {
+    font-size: 2.5rem;
+    color: #9523aa;
+    margin-bottom: 20px;
+  }
+  
+  form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 400px; /* Limitează lățimea formularului */
+  }
+  
+  input, textarea {
+    padding: 12px;
+    font-size: 1rem;
+    margin: 10px 0;
+    border-radius: 10px;
+    border: 1px solid #9523aa;
+    width: 100%;
+  }
+  
+  button {
+    background-color: #9523aa;
+    color: rgb(0, 0, 0);
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.2rem;
+    margin: 20px 0;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  
+  button:hover {
+    background-color: #FFB7B2;
+    color: #9523aa;
+  }
+  
