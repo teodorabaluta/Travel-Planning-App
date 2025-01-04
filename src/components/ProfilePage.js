@@ -1,4 +1,3 @@
-// src/components/ProfilePage.js
 import React, { useState, useEffect } from 'react';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
@@ -16,7 +15,7 @@ const ProfilePage = () => {
   useEffect(() => {
     // Verificăm dacă utilizatorul este autentificat
     if (!user) {
-      setError('You must be logged in to view your groups.');
+      setError('Trebuie să fii logat pentru a vizualiza grupurile.');
       navigate('/');  // Dacă nu este logat, redirecționează la login
       return;
     }
@@ -29,7 +28,7 @@ const ProfilePage = () => {
         const allGroups = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setGroups(allGroups);
       } catch (error) {
-        setError('Failed to fetch groups');
+        setError('Eroare la preluarea grupurilor');
       }
     };
 
@@ -40,27 +39,34 @@ const ProfilePage = () => {
     navigate('/create-group');  // Navighează la pagina de creare grup
   };
 
+  const handleViewMap = (groupId) => {
+    navigate(`/map/${groupId}`);  // Navighează la pagina de hartă a grupului
+  };
+
   return (
     <div className="profile-page">
-      <h1>Welcome, {user?.email}</h1>
+      <h1>Bine ai venit, {user?.email}</h1>
       {error && <p style={{ color: 'red' }}>{error}</p>}
       
-      <h2>Your Groups</h2>
+      <h2>Grupurile tale</h2>
       <div className="group-list">
         {groups.length > 0 ? (
           groups.map(group => (
             <div key={group.id} className="group-card">
               <h3>{group.name}</h3>
               <p>{group.description}</p>
-              <p>Created by: {group.creator}</p>
+              <p>Creat de: {group.creator}</p>
+
+              {/* Buton pentru vizualizarea hărții grupului */}
+              <button onClick={() => handleViewMap(group.id)}>Vezi Harta</button>
             </div>
           ))
         ) : (
-          <p>You are not part of any group yet.</p>
+          <p>Nu faci parte din niciun grup încă.</p>
         )}
       </div>
       
-      <button onClick={handleCreateGroup}>Create New Group</button>
+      <button onClick={handleCreateGroup}>Creează un nou grup</button>
     </div>
   );
 };
