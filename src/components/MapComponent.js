@@ -7,8 +7,8 @@ import {
   InfoWindow,
   DirectionsRenderer,
 } from "@react-google-maps/api";
-import { collection, doc, setDoc, deleteDoc, onSnapshot } from "firebase/firestore";
-import { db } from "../firebase";
+import { collection, doc, setDoc, deleteDoc, onSnapshot, getDoc } from "firebase/firestore";
+import { db, auth } from "../firebase"; // Importă auth și db
 import { useParams } from "react-router-dom";
 import "./MapComponent.css";
 
@@ -21,6 +21,7 @@ const MapComponent = () => {
   const [directions, setDirections] = useState(null);
   const [distance, setDistance] = useState("");
   const [duration, setDuration] = useState("");
+  const [isOrganizer, setIsOrganizer] = useState(false); // Verifică dacă este organizator
   const autocompleteRef = useRef(null);
 
   // Load Google Maps API
@@ -28,6 +29,24 @@ const MapComponent = () => {
     googleMapsApiKey: "AIzaSyC2RelmO1xwOqOvoBWJOkS0ra1d7Fh89QE",
     libraries: ["places"],
   });
+
+  // Verifică dacă utilizatorul curent este organizator
+  useEffect(() => {
+    if (!groupId) return;
+
+    const groupRef = doc(db, "groups", groupId);
+    getDoc(groupRef).then((docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const groupData = docSnapshot.data();
+        const currentUserEmail = auth.currentUser?.email; // Asigură-te că utilizatorul este autentificat
+
+        // Verifică dacă utilizatorul este organizator
+        if (groupData.creator === currentUserEmail) {
+          setIsOrganizer(true);
+        }
+      }
+    });
+  }, [groupId]);
 
   // Fetch locations from Firestore
   useEffect(() => {
@@ -154,21 +173,26 @@ const MapComponent = () => {
   return (
     <div className="map-container">
       <div className="search-bar">
-        <Autocomplete
-          onLoad={(autocomplete) => {
-            autocompleteRef.current = autocomplete;
-          }}
-          onPlaceChanged={handlePlaceChanged}
-        >
-          <input type="text" placeholder="Caută o locație" />
-        </Autocomplete>
-        <button onClick={handleAddLocation} disabled={!newLocation}>
-          Adaugă locația
-        </button>
-        <button onClick={generateRoute} disabled={markers.length < 2}>
-          Generează traseu
-        </button>
-      </div>
+  <Autocomplete
+    onLoad={(autocomplete) => {
+      autocompleteRef.current = autocomplete;
+    }}
+    onPlaceChanged={handlePlaceChanged}
+  >
+    <input type="text" placeholder="Caută o locație" />
+  </Autocomplete>
+  {isOrganizer && ( // Butoanele apar doar pentru organizatori
+    <>
+      <button onClick={handleAddLocation} disabled={!newLocation}>
+        Adaugă locația
+      </button>
+      <button onClick={generateRoute} disabled={markers.length < 2}>
+        Generează traseu
+      </button>
+    </>
+  )}
+</div>
+
 
       {distance && duration && (
         <div className="route-info">
@@ -204,16 +228,19 @@ const MapComponent = () => {
         </GoogleMap>
 
         <div className="location-list">
-          <h3>Locații Salvate:</h3>
-          <ul>
-            {markers.map((marker) => (
-              <li key={marker.id} onClick={() => setMapCenter({ lat: marker.lat, lng: marker.lng })}>
-                {marker.name}
-                <button onClick={() => handleRemoveLocation(marker.id)}>Șterge</button>
-              </li>
-            ))}
-          </ul>
-        </div>
+  <h3>Locații Salvate:</h3>
+  <ul>
+    {markers.map((marker) => (
+      <li key={marker.id} onClick={() => setMapCenter({ lat: marker.lat, lng: marker.lng })}>
+        {marker.name}
+        {isOrganizer && ( // Butonul apare doar pentru organizatori
+          <button onClick={() => handleRemoveLocation(marker.id)}>Șterge</button>
+        )}
+      </li>
+    ))}
+  </ul>
+</div>
+
       </div>
     </div>
   );
