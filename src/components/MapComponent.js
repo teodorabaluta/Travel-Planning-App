@@ -8,7 +8,7 @@ import {
   DirectionsRenderer,
 } from "@react-google-maps/api";
 import { collection, doc, setDoc, deleteDoc, onSnapshot, getDoc } from "firebase/firestore";
-import { db, auth } from "../firebase"; // Importă auth și db
+import { db, auth } from "../firebase";
 import { useParams } from "react-router-dom";
 import "./MapComponent.css";
 
@@ -21,7 +21,8 @@ const MapComponent = () => {
   const [directions, setDirections] = useState(null);
   const [distance, setDistance] = useState("");
   const [duration, setDuration] = useState("");
-  const [isOrganizer, setIsOrganizer] = useState(false); // Verifică dacă este organizator
+  const [isOrganizer, setIsOrganizer] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
   const autocompleteRef = useRef(null);
 
   // Load Google Maps API
@@ -30,25 +31,77 @@ const MapComponent = () => {
     libraries: ["places"],
   });
 
-  // Verifică dacă utilizatorul curent este organizator
+  // Verificăm dacă utilizatorul este organizator
   useEffect(() => {
-    if (!groupId) return;
+    if (!groupId) {
+      console.error("No groupId found!");
+      return;
+    }
 
-    const groupRef = doc(db, "groups", groupId);
-    getDoc(groupRef).then((docSnapshot) => {
-      if (docSnapshot.exists()) {
-        const groupData = docSnapshot.data();
-        const currentUserEmail = auth.currentUser?.email; // Asigură-te că utilizatorul este autentificat
+    const checkIfOrganizer = async () => {
+      try {
+        const groupRef = doc(db, "groups", groupId);
+        const groupDoc = await getDoc(groupRef);
 
-        // Verifică dacă utilizatorul este organizator
-        if (groupData.creator === currentUserEmail) {
-          setIsOrganizer(true);
+        if (groupDoc.exists()) {
+          const groupData = groupDoc.data();
+          const currentUserEmail = auth.currentUser?.email;
+
+          // Verificăm dacă utilizatorul este creator
+          if (groupData.creator === currentUserEmail) {
+            setIsOrganizer(true);
+          } else {
+            setIsOrganizer(false);
+          }
+        } else {
+          console.error("Group document does not exist!");
         }
+      } catch (error) {
+        console.error("Error checking if user is organizer:", error);
       }
-    });
+    };
+
+    checkIfOrganizer();
   }, [groupId]);
 
-  // Fetch locations from Firestore
+  // Detectăm locația utilizatorului
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setUserLocation({ lat: latitude, lng: longitude });
+          setMapCenter({ lat: latitude, lng: longitude }); // Centrează harta pe locația utilizatorului
+        },
+        (error) => {
+          console.error("Eroare la obținerea locației:", error);
+          alert("Nu am putut accesa locația ta.");
+        },
+        { enableHighAccuracy: true }
+      );
+
+      // Actualizare în timp real
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setUserLocation({ lat: latitude, lng: longitude });
+        },
+        (error) => {
+          console.error("Eroare la actualizarea locației:", error);
+        },
+        { enableHighAccuracy: true }
+      );
+
+      // Curăță watchId la demontarea componentului
+      return () => {
+        navigator.geolocation.clearWatch(watchId);
+      };
+    } else {
+      alert("Geolocația nu este suportată de browserul tău.");
+    }
+  }, []);
+
+  // Preluăm locațiile din Firestore
   useEffect(() => {
     if (!groupId) {
       alert("Nu există Group ID pentru salvarea locației.");
@@ -73,7 +126,7 @@ const MapComponent = () => {
     return () => unsubscribe();
   }, [groupId]);
 
-  // Add a new location to Firestore
+  // Adăugăm o locație nouă
   const handleAddLocation = async () => {
     if (!groupId) {
       alert("Nu există Group ID pentru salvarea locației.");
@@ -94,7 +147,7 @@ const MapComponent = () => {
     }
   };
 
-  // Remove a location from Firestore
+  // Ștergem o locație
   const handleRemoveLocation = async (id) => {
     if (!groupId) {
       alert("Nu există Group ID pentru ștergerea locației.");
@@ -109,7 +162,7 @@ const MapComponent = () => {
     }
   };
 
-  // Handle place selection
+  // Selectăm un loc
   const handlePlaceChanged = () => {
     const place = autocompleteRef.current.getPlace();
     if (place.geometry) {
@@ -125,7 +178,7 @@ const MapComponent = () => {
     }
   };
 
-  // Generate route
+  // Generăm ruta
   const generateRoute = () => {
     if (markers.length < 2) {
       alert("Trebuie să aveți cel puțin două locații pentru a genera un traseu.");
@@ -173,26 +226,25 @@ const MapComponent = () => {
   return (
     <div className="map-container">
       <div className="search-bar">
-  <Autocomplete
-    onLoad={(autocomplete) => {
-      autocompleteRef.current = autocomplete;
-    }}
-    onPlaceChanged={handlePlaceChanged}
-  >
-    <input type="text" placeholder="Caută o locație" />
-  </Autocomplete>
-  {isOrganizer && ( // Butoanele apar doar pentru organizatori
-    <>
-      <button onClick={handleAddLocation} disabled={!newLocation}>
-        Adaugă locația
-      </button>
-      <button onClick={generateRoute} disabled={markers.length < 2}>
-        Generează traseu
-      </button>
-    </>
-  )}
-</div>
-
+        <Autocomplete
+          onLoad={(autocomplete) => {
+            autocompleteRef.current = autocomplete;
+          }}
+          onPlaceChanged={handlePlaceChanged}
+        >
+          <input type="text" placeholder="Caută o locație" />
+        </Autocomplete>
+        {isOrganizer && (
+          <>
+            <button onClick={handleAddLocation} disabled={!newLocation}>
+              Adaugă locația
+            </button>
+            <button onClick={generateRoute} disabled={markers.length < 2}>
+              Generează traseu
+            </button>
+          </>
+        )}
+      </div>
 
       {distance && duration && (
         <div className="route-info">
@@ -207,6 +259,14 @@ const MapComponent = () => {
           center={mapCenter}
           zoom={15}
         >
+          {userLocation && (
+            <Marker
+              position={userLocation}
+              icon={{
+                url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+              }}
+            />
+          )}
           {markers.map((marker) => (
             <Marker
               key={marker.id}
@@ -228,19 +288,18 @@ const MapComponent = () => {
         </GoogleMap>
 
         <div className="location-list">
-  <h3>Locații Salvate:</h3>
-  <ul>
-    {markers.map((marker) => (
-      <li key={marker.id} onClick={() => setMapCenter({ lat: marker.lat, lng: marker.lng })}>
-        {marker.name}
-        {isOrganizer && ( // Butonul apare doar pentru organizatori
-          <button onClick={() => handleRemoveLocation(marker.id)}>Șterge</button>
-        )}
-      </li>
-    ))}
-  </ul>
-</div>
-
+          <h3>Locații Salvate:</h3>
+          <ul>
+            {markers.map((marker) => (
+              <li key={marker.id} onClick={() => setMapCenter({ lat: marker.lat, lng: marker.lng })}>
+                {marker.name}
+                {isOrganizer && (
+                  <button onClick={() => handleRemoveLocation(marker.id)}>Șterge</button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
   );
