@@ -7,13 +7,25 @@ import {
   InfoWindow,
   DirectionsRenderer,
 } from "@react-google-maps/api";
-import { collection, doc, setDoc, deleteDoc, onSnapshot, getDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  setDoc,
+  deleteDoc,
+  onSnapshot,
+  getDoc,
+  addDoc,
+  serverTimestamp,
+  query,
+  orderBy,
+} from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { useParams } from "react-router-dom";
 import "./MapComponent.css";
 
 const MapComponent = () => {
-  const { groupId } = useParams();
+  // Declare hooks here at the top of the functional component
+  const [isChatMinimized, setIsChatMinimized] = useState(false);
   const [markers, setMarkers] = useState([]);
   const [newLocation, setNewLocation] = useState(null);
   const [mapCenter, setMapCenter] = useState({ lat: 44.4268, lng: 26.1025 });
@@ -23,15 +35,25 @@ const MapComponent = () => {
   const [duration, setDuration] = useState("");
   const [isOrganizer, setIsOrganizer] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState("");
+
   const autocompleteRef = useRef(null);
+
+  // Toggle chat functionality
+  const toggleChat = () => {
+    setIsChatMinimized(!isChatMinimized);
+  };
 
   // Load Google Maps API
   const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: "AIzaSyC2RelmO1xwOqOvoBWJOkS0ra1d7Fh89QE",
+    googleMapsApiKey: "AIzaSyC2RelmO1xwOqOvoBWJOkS0ra1d7Fh89QE", // Replace with your API key
     libraries: ["places"],
   });
 
-  // Verificăm dacă utilizatorul este organizator
+  const { groupId } = useParams();
+
+  // Check if the user is the organizer
   useEffect(() => {
     if (!groupId) {
       console.error("No groupId found!");
@@ -47,7 +69,7 @@ const MapComponent = () => {
           const groupData = groupDoc.data();
           const currentUserEmail = auth.currentUser?.email;
 
-          // Verificăm dacă utilizatorul este creator
+          // Check if the user is the creator
           if (groupData.creator === currentUserEmail) {
             setIsOrganizer(true);
           } else {
@@ -64,48 +86,45 @@ const MapComponent = () => {
     checkIfOrganizer();
   }, [groupId]);
 
-  // Detectăm locația utilizatorului
+  // Detect user's location
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
           setUserLocation({ lat: latitude, lng: longitude });
-          setMapCenter({ lat: latitude, lng: longitude }); // Centrează harta pe locația utilizatorului
+          setMapCenter({ lat: latitude, lng: longitude });
         },
         (error) => {
-          console.error("Eroare la obținerea locației:", error);
-          alert("Nu am putut accesa locația ta.");
+          console.error("Error getting location:", error);
+          alert("Could not access your location.");
         },
         { enableHighAccuracy: true }
       );
 
-      // Actualizare în timp real
       const watchId = navigator.geolocation.watchPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
           setUserLocation({ lat: latitude, lng: longitude });
         },
         (error) => {
-          console.error("Eroare la actualizarea locației:", error);
+          console.error("Error updating location:", error);
         },
         { enableHighAccuracy: true }
       );
 
-      // Curăță watchId la demontarea componentului
       return () => {
         navigator.geolocation.clearWatch(watchId);
       };
     } else {
-      alert("Geolocația nu este suportată de browserul tău.");
+      alert("Geolocation is not supported by your browser.");
     }
   }, []);
 
-  // Preluăm locațiile din Firestore
+  // Fetch locations from Firestore
   useEffect(() => {
     if (!groupId) {
-      alert("Nu există Group ID pentru salvarea locației.");
-      console.error("Group ID este lipsă!");
+      console.error("No group ID for saving location.");
       return;
     }
 
@@ -126,10 +145,10 @@ const MapComponent = () => {
     return () => unsubscribe();
   }, [groupId]);
 
-  // Adăugăm o locație nouă
+  // Add a new location
   const handleAddLocation = async () => {
     if (!groupId) {
-      alert("Nu există Group ID pentru salvarea locației.");
+      console.error("No group ID for saving location.");
       return;
     }
 
@@ -139,18 +158,18 @@ const MapComponent = () => {
         await setDoc(docRef, newLocation);
         setNewLocation(null);
       } catch (error) {
-        console.error("Error adding location:", error.message);
-        alert(`A apărut o eroare la salvarea locației: ${error.message}`);
+        console.error("Error adding location:", error);
+        alert(`Error saving location: ${error.message}`);
       }
     } else {
-      console.warn("Nu există locație de adăugat.");
+      console.warn("No location to add.");
     }
   };
 
-  // Ștergem o locație
+  // Remove a location
   const handleRemoveLocation = async (id) => {
     if (!groupId) {
-      alert("Nu există Group ID pentru ștergerea locației.");
+      console.error("No group ID for deleting location.");
       return;
     }
 
@@ -158,37 +177,40 @@ const MapComponent = () => {
       await deleteDoc(doc(db, `groups/${groupId}/locations`, id));
     } catch (error) {
       console.error("Error removing location:", error);
-      alert("A apărut o eroare la ștergerea locației.");
+      alert("Error deleting location.");
     }
   };
 
-  // Selectăm un loc
+  // Handle place changed
   const handlePlaceChanged = () => {
     const place = autocompleteRef.current.getPlace();
     if (place.geometry) {
       const location = {
         lat: place.geometry.location.lat(),
         lng: place.geometry.location.lng(),
-        name: place.name || "Locație necunoscută",
+        name: place.name || "Unknown location",
       };
       setNewLocation(location);
       setMapCenter(location);
     } else {
-      console.error("Locația selectată nu conține geometrie!");
+      console.error("Selected place has no geometry!");
     }
   };
 
-  // Generăm ruta
+  // Generate route
   const generateRoute = () => {
     if (markers.length < 2) {
-      alert("Trebuie să aveți cel puțin două locații pentru a genera un traseu.");
+      alert("You need at least two locations to generate a route.");
       return;
     }
 
     const directionsService = new window.google.maps.DirectionsService();
 
     const origin = { lat: markers[0].lat, lng: markers[0].lng };
-    const destination = { lat: markers[markers.length - 1].lat, lng: markers[markers.length - 1].lng };
+    const destination = {
+      lat: markers[markers.length - 1].lat,
+      lng: markers[markers.length - 1].lng,
+    };
     const waypoints = markers.slice(1, -1).map((marker) => ({
       location: { lat: marker.lat, lng: marker.lng },
       stopover: true,
@@ -206,21 +228,58 @@ const MapComponent = () => {
           setDirections(result);
 
           const route = result.routes[0];
-          const totalDistance = route.legs.reduce((acc, leg) => acc + leg.distance.value, 0) / 1000;
-          const totalDuration = route.legs.reduce((acc, leg) => acc + leg.duration.value, 0) / 60;
+          const totalDistance = route.legs.reduce(
+            (acc, leg) => acc + leg.distance.value,
+            0
+          );
+          const totalDuration = route.legs.reduce(
+            (acc, leg) => acc + leg.duration.value,
+            0
+          );
 
-          setDistance(`${totalDistance.toFixed(2)} km`);
-          setDuration(`${totalDuration.toFixed(2)} minute`);
+          setDistance(`${(totalDistance / 1000).toFixed(2)} km`);
+          setDuration(`${(totalDuration / 60).toFixed(2)} minutes`);
         } else {
-          alert("Nu s-a putut genera traseul. Vă rugăm să încercați din nou.");
-          console.error("Eroare la generarea traseului:", status);
+          alert("Could not generate route. Please try again.");
         }
       }
     );
   };
 
+  // Fetch chat messages
+  useEffect(() => {
+    if (!groupId) return;
+
+    const messagesRef = collection(db, `groups/${groupId}/messages`);
+    const q = query(messagesRef, orderBy("timestamp"));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedMessages = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setMessages(fetchedMessages);
+    });
+
+    return () => unsubscribe();
+  }, [groupId]);
+
+  // Send a new chat message
+  const handleSendMessage = async () => {
+    if (!newMessage.trim()) return;
+
+    const messagesRef = collection(db, `groups/${groupId}/messages`);
+    await addDoc(messagesRef, {
+      sender: auth.currentUser.email,
+      content: newMessage,
+      timestamp: serverTimestamp(),
+    });
+
+    setNewMessage("");
+  };
+
   if (!isLoaded) {
-    return <div>Se încarcă harta...</div>;
+    return <div>Loading map...</div>;
   }
 
   return (
@@ -300,6 +359,41 @@ const MapComponent = () => {
             ))}
           </ul>
         </div>
+      </div>
+
+      <div className={`chat-container ${isChatMinimized ? "minimized" : ""}`}>
+        <div className="chat-header">
+          <h3 onClick={toggleChat}>Chat Grup</h3>
+          <button onClick={toggleChat}>{isChatMinimized ? "⬆️" : "❌"}</button>
+        </div>
+        {!isChatMinimized && (
+          <>
+            <div className="chat-messages">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`chat-message ${
+                    message.sender === auth.currentUser.email ? "own-message" : "other-message"
+                  }`}
+                >
+                  <p>
+                    <strong>{message.sender}:</strong> {message.content}
+                  </p>
+                  <small>{new Date(message.timestamp?.toDate()).toLocaleTimeString()}</small>
+                </div>
+              ))}
+            </div>
+            <div className="chat-input">
+              <input
+                type="text"
+                placeholder="Scrie un mesaj..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+              />
+              <button onClick={handleSendMessage}>Trimite</button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
